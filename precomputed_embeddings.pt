@@ -1,0 +1,17 @@
+from sentence_transformers import SentenceTransformer
+import torch
+import json
+
+# Load your database.json
+with open("database.json", "r", encoding="utf-8") as f:
+    db_data = json.load(f)
+
+model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+
+# Precompute embeddings
+for entry in db_data:
+    entry["embedding"] = model.encode(entry["content"], convert_to_tensor=True)
+
+# Save to .pt file
+torch.save(db_data, "precomputed_embeddings.pt")
+print("Saved embeddings to precomputed_embeddings.pt")
