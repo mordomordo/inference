@@ -4,24 +4,22 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, util
 import json
+import torch
 import os
 
 # ================= FastAPI =================
-app = FastAPI(title="Smart Home Inference Server")
+app = FastAPI(title="Smart Home QA Inference Server")
 
-# ================= Load database =================
-DB_FILE = os.path.join(os.path.dirname(__file__), "database.json")
-with open(DB_FILE, "r", encoding="utf-8") as f:
-    db_data = json.load(f)
+# ================= Load precomputed embeddings =================
+EMBED_FILE = "precomputed_embeddings.pt"
+if not os.path.exists(EMBED_FILE):
+    raise FileNotFoundError(f"{EMBED_FILE} not found. Upload it to the repo root.")
 
-# ================= Load model =================
-MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
-model = SentenceTransformer(MODEL_NAME)
+# PyTorch 2.6+ fix: allow full deserialization
+db_data = torch.load(EMBED_FILE, weights_only=False)
 
-# Precompute embeddings if not already
-for entry in db_data:
-    if "embedding" not in entry:
-        entry["embedding"] = model.encode(entry["content"], convert_to_tensor=True)
+# ================= Load multilingual embedding model =================
+model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
 # ================= Pydantic model =================
 class QueryRequest(BaseModel):
@@ -38,7 +36,8 @@ def query(request: QueryRequest):
     except Exception as e:
         return JSONResponse({"ai_reply": f"[Error] {e}"})
 
-# ================= Run locally =================
+# ================= Run on Render =================
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 7860)))
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
