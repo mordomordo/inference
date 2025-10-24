@@ -16,7 +16,7 @@ if not os.path.exists(EMBED_FILE):
     raise FileNotFoundError(f"{EMBED_FILE} not found. Upload it to the repo root.")
 
 # PyTorch 2.6+ fix: allow full deserialization
-db_data = torch.load(EMBED_FILE, weights_only=False)
+db_data = torch.load("precomputed_embeddings.pt", weights_only=False)
 
 # ================= Load multilingual embedding model =================
 model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
